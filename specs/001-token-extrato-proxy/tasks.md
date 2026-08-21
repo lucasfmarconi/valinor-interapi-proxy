@@ -38,19 +38,19 @@ Per `plan.md`'s Project Structure (Core/Infrastructure/Api, 3 projects):
 
 **Purpose**: Solution/project scaffolding per the Project Structure in plan.md
 
-- [ ] T001 Create the .NET 10 solution and three source projects
+- [X] T001 Create the .NET 10 solution and three source projects
       (`src/ValinorInterApiProxy.Api`, `src/ValinorInterApiProxy.Core`,
       `src/ValinorInterApiProxy.Infrastructure`) and three test projects
       (`tests/ValinorInterApiProxy.Core.Tests`, `tests/ValinorInterApiProxy.Infrastructure.Tests`,
       `tests/ValinorInterApiProxy.Api.Tests`), wired so `Api` references `Core` and
       `Infrastructure`, `Infrastructure` references `Core`, and `Core` references neither
       (Dependency Rule from plan.md's Structure Decision); add all six projects to the `.sln`.
-- [ ] T002 Add NuGet package references: `Microsoft.AspNetCore.Authentication.JwtBearer` and
+- [X] T002 Add NuGet package references: `Microsoft.AspNetCore.Authentication.JwtBearer` and
       `Microsoft.Extensions.Http.Resilience` to `ValinorInterApiProxy.Api`;
       `Microsoft.Extensions.Caching.Memory` and `Microsoft.Extensions.Http.Resilience` to
       `ValinorInterApiProxy.Infrastructure`; `xunit`, `WireMock.Net`, and
       `Microsoft.AspNetCore.Mvc.Testing` to the three test projects.
-- [ ] T003 [P] Add a root `.editorconfig` and enable `dotnet format` verification, matching the
+- [X] T003 [P] Add a root `.editorconfig` and enable `dotnet format` verification, matching the
       constitution's Development Workflow gate for code review.
 
 **Checkpoint**: `dotnet build` succeeds across the empty solution.
