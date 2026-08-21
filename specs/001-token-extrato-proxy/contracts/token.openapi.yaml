@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: Valinor InterAPI Proxy - Token Endpoint
+  version: "1.0.0"
+  description: >
+    Proxies Banco Inter's OAuth client-credentials token issuance over MTLS. The proxy holds
+    Banco Inter's own client credentials and certificate; the consumer supplies none of that,
+    only a JWT with the token-issue scope. The Inter OAuth scope requested (e.g. "extrato.read")
+    is fixed, proxy-side configuration — the consumer does not choose or influence it.
+paths:
+  /token:
+    post:
+      operationId: issueToken
+      summary: Issue a Banco Inter access token
+      security:
+        - bearerAuth: [ "token-issue" ]
+      responses:
+        "200":
+          description: Token issued successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Missing, invalid, or expired JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: JWT valid but missing the token-issue scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Banco Inter's token service is unavailable or returned an error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresAt]
+      properties:
+        accessToken:
+          type: string
+          description: The Banco Inter access token value.
+        tokenType:
+          type: string
+          example: "Bearer"
+        expiresAt:
+          type: string
+          format: date-time
+          description: >-
+            Absolute expiry timestamp (UTC) of the returned token, computed by the proxy from
+            Banco Inter's relative expires_in (seconds).
+    ErrorResponse:
+      type: object
+      required: [correlationId, message]
+      properties:
+        correlationId:
+          type: string
+          description: Correlation id for tracing this request in logs (constitution Principle V).
+        message:
+          type: string
+          description: Consumer-safe error description; never includes credentials or internals.

@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Valinor InterAPI Proxy - Extrato Endpoint
+  version: "1.0.0"
+  description: >
+    Proxies Banco Inter's bank statement (Extrato) retrieval over MTLS. The proxy manages its
+    own Banco Inter access token internally (spec FR-005); the consumer never supplies an Inter
+    token, only a JWT with the extrato-read scope plus the requested date range.
+paths:
+  /extrato:
+    get:
+      operationId: getStatement
+      summary: Retrieve a bank statement for a date range
+      security:
+        - bearerAuth: [ "extrato-read" ]
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Statement retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatementResponse"
+        "400":
+          description: Invalid date range (out of order, future-dated, or exceeds Banco Inter's maximum period)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing, invalid, or expired JWT
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: JWT valid but missing the extrato-read scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Banco Inter's statement service is unavailable or returned an error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    StatementResponse:
+      type: object
+      required: [startDate, endDate, entries]
+      properties:
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatementEntry"
+    StatementEntry:
+      type: object
+      required: [entryDate, transactionType, operationType, amount, title, description]
+      properties:
+        entryDate:
+          type: string
+          format: date
+        cpmf:
+          type: string
+          description: CPMF indicator as supplied by Banco Inter (opaque passthrough value).
+        transactionType:
+          type: string
+          description: Transaction type as supplied by Banco Inter (maps from Inter's tipoTransacao).
+        operationType:
+          type: string
+          description: Operation type as supplied by Banco Inter (maps from Inter's tipoOperacao).
+        amount:
+          type: number
+          format: decimal
+          description: Signed transaction amount, parsed from Banco Inter's valor field.
+        title:
+          type: string
+          description: Short title/label as supplied by Banco Inter (maps from Inter's titulo).
+        description:
+          type: string
+    ErrorResponse:
+      type: object
+      required: [correlationId, message]
+      properties:
+        correlationId:
+          type: string
+          description: Correlation id for tracing this request in logs (constitution Principle V).
+        message:
+          type: string
+          description: Consumer-safe error description; never includes credentials or internals.

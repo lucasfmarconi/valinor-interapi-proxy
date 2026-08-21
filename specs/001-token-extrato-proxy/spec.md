@@ -156,3 +156,10 @@ supplying Inter credentials or a client certificate.
   manages its own Banco Inter access token internally for Extrato, so the Token capability exists
   to serve consumers who need a Banco Inter access token for purposes outside this feature's
   scope, not as a prerequisite step for Extrato.
+- Banco Inter's Extrato API requires a checking-account identifier on every request, in addition
+  to the statement date range. Consistent with the single-account assumption above, this
+  identifier is proxy-side configuration, not a value the consumer supplies or chooses.
+- The Banco Inter OAuth scope the proxy requests from Inter (for both the Token capability and
+  its own internal Extrato token) is fixed, proxy-side configuration. The consumer's JWT scope
+  determines which proxy capability they may call, but never influences which Inter-side
+  permission is requested.
