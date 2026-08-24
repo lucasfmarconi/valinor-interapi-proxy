@@ -42,3 +42,21 @@ public sealed class FakeInterStatementClient : IInterStatementClient
         return Task.FromResult(StatementToReturn);
     }
 }
+
+/// <summary>
+/// Hand-rolled fake standing in for the Infrastructure-layer Inter token client in Api-level
+/// tests (see <see cref="FakeInterAccessTokenProvider"/>).
+/// </summary>
+public sealed class FakeInterTokenClient : IInterTokenClient
+{
+    public bool WasCalled { get; private set; }
+
+    public InterAccessToken TokenToReturn { get; set; } =
+        new("fake-access-token", "Bearer", DateTimeOffset.UtcNow.AddHours(1), "extrato.read");
+
+    public Task<InterAccessToken> IssueTokenAsync(CancellationToken cancellationToken = default)
+    {
+        WasCalled = true;
+        return Task.FromResult(TokenToReturn);
+    }
+}

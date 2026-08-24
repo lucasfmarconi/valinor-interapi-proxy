@@ -179,13 +179,13 @@ valid Banco Inter access token and expiry are returned.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T022 [P] [US2] Contract test for `POST /token` success response shape (matching
+- [X] T022 [P] [US2] Contract test for `POST /token` success response shape (matching
       `contracts/token.openapi.yaml`) in `tests/ValinorInterApiProxy.Api.Tests/TokenEndpointTests.cs`.
-- [ ] T023 [P] [US2] Authorization-rejection test in
+- [X] T023 [P] [US2] Authorization-rejection test in
       `tests/ValinorInterApiProxy.Api.Tests/TokenAuthorizationTests.cs`: no JWT → 401; JWT
       without `token-issue` scope (e.g., only `extrato-read`) → 403 (spec Acceptance Scenario
       US2.2, SC-002).
-- [ ] T024 [P] [US2] Integration test for `InterHttpClient.IssueTokenAsync` against
+- [X] T024 [P] [US2] Integration test for `InterHttpClient.IssueTokenAsync` against
       `WireMock.Net` in `tests/ValinorInterApiProxy.Infrastructure.Tests/InterHttpClientTokenTests.cs`,
       simulating Banco Inter's `POST /oauth/v2/token` for: success (200 with `access_token`/
       `expires_in`/`scope` mapped to `InterAccessToken`), and each documented failure status

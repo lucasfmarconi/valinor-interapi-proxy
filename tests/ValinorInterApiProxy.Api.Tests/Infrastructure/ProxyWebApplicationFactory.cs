@@ -19,6 +19,8 @@ public sealed class ProxyWebApplicationFactory : WebApplicationFactory<Program>
 
     public FakeInterStatementClient StatementClient { get; } = new();
 
+    public FakeInterTokenClient TokenClient { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -32,6 +34,9 @@ public sealed class ProxyWebApplicationFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IInterStatementClient>();
             services.AddSingleton<IInterStatementClient>(StatementClient);
+
+            services.RemoveAll<IInterTokenClient>();
+            services.AddSingleton<IInterTokenClient>(TokenClient);
         });
     }
 }
