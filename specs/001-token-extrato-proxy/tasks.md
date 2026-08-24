@@ -64,41 +64,41 @@ Token and Extrato — nothing in Phase 3+ can be implemented before this phase c
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Define Core ports `IInterTokenClient`, `IInterStatementClient`, and
+- [X] T004 Define Core ports `IInterTokenClient`, `IInterStatementClient`, and
       `IInterAccessTokenProvider` in `src/ValinorInterApiProxy.Core/Ports/` per data-model.md
       (Infrastructure will implement these; Core and Api depend only on the interfaces).
-- [ ] T005 [P] Define Core models `InterAccessToken`, `StatementQuery`, `BankStatement`, and
+- [X] T005 [P] Define Core models `InterAccessToken`, `StatementQuery`, `BankStatement`, and
       `StatementEntry` in `src/ValinorInterApiProxy.Core/Models/`, matching the fields and
       validation rules in data-model.md exactly (including the `EntryDate`/`Cpmf`/
       `TransactionType`/`OperationType`/`Amount`/`Title`/`Description` shape for
       `StatementEntry`).
-- [ ] T006 Implement `InterOptions` in `src/ValinorInterApiProxy.Infrastructure/InterApi/InterOptions.cs`
+- [X] T006 Implement `InterOptions` in `src/ValinorInterApiProxy.Infrastructure/InterApi/InterOptions.cs`
       bound via the Options pattern from secret configuration: `ClientId`, `ClientSecret`,
       `CertificatePath`, `CertificatePassword`, `Scope`, `ContaCorrente`, `BaseUrl` — no literal
       secret values anywhere in source (constitution Principle IV).
-- [ ] T007 Register a typed `HttpClient` for `InterHttpClient` in
+- [X] T007 Register a typed `HttpClient` for `InterHttpClient` in
       `src/ValinorInterApiProxy.Infrastructure/InterApi/InterHttpClient.cs` via
       `IHttpClientFactory`, with the MTLS client certificate (loaded from `InterOptions`) attached
       to the handler and a standard resilience policy (bounded retry + timeout) applied
       (constitution Principle I). Stub `IssueTokenAsync`/`GetStatementAsync` bodies to be filled
       in by US2/US1 tasks below.
-- [ ] T008 [P] Configure JWT Bearer authentication in
+- [X] T008 [P] Configure JWT Bearer authentication in
       `src/ValinorInterApiProxy.Api/Program.cs` using `Microsoft.AspNetCore.Authentication.JwtBearer`,
       validating signature, issuer, audience, and expiry from `Jwt:Authority`/`Jwt:Audience`
       configuration (constitution Principle II; FR-001).
-- [ ] T009 [P] Define authorization policies `token-issue` and `extrato-read` in
+- [X] T009 [P] Define authorization policies `token-issue` and `extrato-read` in
       `src/ValinorInterApiProxy.Api/Authorization/ScopePolicies.cs`, each requiring its own
       distinct scope claim (constitution Principle II; FR-002/FR-003).
-- [ ] T010 [P] Implement correlation-id and secret-redacting structured logging middleware in
+- [X] T010 [P] Implement correlation-id and secret-redacting structured logging middleware in
       `src/ValinorInterApiProxy.Api/Middleware/CorrelationLoggingMiddleware.cs`, logging
       correlation id, caller `sub` claim, and outcome for every request without logging token
       values, credentials, or statement contents (constitution Principle V; FR-010).
-- [ ] T011 Implement a shared `ErrorResponse` DTO and upstream-error mapping helper in
+- [X] T011 Implement a shared `ErrorResponse` DTO and upstream-error mapping helper in
       `src/ValinorInterApiProxy.Api/Contracts/ErrorResponse.cs`, matching the
       `{ correlationId, message }` shape in `contracts/token.openapi.yaml` and
       `contracts/extrato.openapi.yaml`, used to translate both JWT-auth failures and Inter
       upstream failures into consumer-safe responses (FR-008/FR-009).
-- [ ] T012 Wire the composition root in `src/ValinorInterApiProxy.Api/Program.cs`: register
+- [X] T012 Wire the composition root in `src/ValinorInterApiProxy.Api/Program.cs`: register
       `InterHttpClient` behind `IInterTokenClient`/`IInterStatementClient`, register JWT auth +
       the two authorization policies, and add the correlation-logging middleware to the pipeline
       (depends on T004–T011).
@@ -120,18 +120,18 @@ bank statement for a date range, without ever needing an MTLS certificate or a p
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US1] Contract test for `GET /extrato` success response shape (matching
+- [X] T013 [P] [US1] Contract test for `GET /extrato` success response shape (matching
       `contracts/extrato.openapi.yaml`) in `tests/ValinorInterApiProxy.Api.Tests/ExtratoEndpointTests.cs`.
-- [ ] T014 [P] [US1] Authorization-rejection test in
+- [X] T014 [P] [US1] Authorization-rejection test in
       `tests/ValinorInterApiProxy.Api.Tests/ExtratoAuthorizationTests.cs`: no JWT → 401; JWT
       without `extrato-read` scope (e.g., only `token-issue`) → 403; no Inter call is made in
       either case (spec Acceptance Scenario US1.2, SC-002).
-- [ ] T015 [P] [US1] Integration test for `InterHttpClient.GetStatementAsync` against
+- [X] T015 [P] [US1] Integration test for `InterHttpClient.GetStatementAsync` against
       `WireMock.Net` in `tests/ValinorInterApiProxy.Infrastructure.Tests/InterHttpClientExtratoTests.cs`,
       simulating Banco Inter's `GET /banking/v2/extrato` for: success (200 with `transacoes[]`
       mapped correctly), and each documented failure status (400, 403, 404, 503) mapping to the
       proxy's upstream-error shape.
-- [ ] T016 [P] [US1] Unit test for `GetStatementUseCase` date-range validation in
+- [X] T016 [P] [US1] Unit test for `GetStatementUseCase` date-range validation in
       `tests/ValinorInterApiProxy.Core.Tests/GetStatementUseCaseTests.cs`: end-before-start,
       future end date, and range exceeding the configured maximum period all produce a
       validation error (spec Edge Cases, FR-007), with `IInterAccessTokenProvider`/
@@ -139,28 +139,28 @@ bank statement for a date range, without ever needing an MTLS certificate or a p
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Implement `MemoryCacheInterAccessTokenProvider` in
+- [X] T017 [US1] Implement `MemoryCacheInterAccessTokenProvider` in
       `src/ValinorInterApiProxy.Infrastructure/Caching/MemoryCacheInterAccessTokenProvider.cs`
       implementing `IInterAccessTokenProvider`: obtains a token via `IInterTokenClient` on first
       use, caches it, and refreshes shortly before `ExpiresAt` (FR-005; depends on T004, T007).
-- [ ] T018 [US1] Implement `InterHttpClient.GetStatementAsync` in
+- [X] T018 [US1] Implement `InterHttpClient.GetStatementAsync` in
       `src/ValinorInterApiProxy.Infrastructure/InterApi/InterHttpClient.cs`: send
       `dataInicio`/`dataFim` query params and the `x-conta-corrente` header (from `InterOptions`)
       with the cached Bearer token, map `transacoes[]` to `StatementEntry` (parsing `valor` to
       `decimal` with `CultureInfo.InvariantCulture`, surfacing a clear error on parse failure),
       and map Inter's 400/403/404/503 to the upstream-error contract (depends on T005, T007,
       T017).
-- [ ] T019 [US1] Implement `GetStatementUseCase` in
+- [X] T019 [US1] Implement `GetStatementUseCase` in
       `src/ValinorInterApiProxy.Core/UseCases/GetStatementUseCase.cs`: validate the incoming
       `StatementQuery` (per T016's rules), call `IInterAccessTokenProvider` +
       `IInterStatementClient`, and return a `BankStatement` (depends on T004, T005, T018).
-- [ ] T020 [US1] Implement `GET /extrato` in
+- [X] T020 [US1] Implement `GET /extrato` in
       `src/ValinorInterApiProxy.Api/Endpoints/ExtratoEndpoint.cs`: require the `extrato-read`
       policy, bind `startDate`/`endDate` query parameters to a `StatementQuery`, call
       `GetStatementUseCase`, map `BankStatement` to the `StatementResponse` DTO, and map
       validation/upstream errors to 400/502 via the shared `ErrorResponse` helper (depends on
       T009, T011, T019).
-- [ ] T021 [US1] Emit correlation-id, caller-identity, and outcome logging for every `/extrato`
+- [X] T021 [US1] Emit correlation-id, caller-identity, and outcome logging for every `/extrato`
       request via the middleware from T010 (FR-010; depends on T010, T020).
 
 **Checkpoint**: `/extrato` is fully functional and independently testable — this is the MVP.
