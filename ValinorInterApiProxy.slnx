@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ValinorInterApiProxy.Api/ValinorInterApiProxy.Api.csproj" />
+    <Project Path="src/ValinorInterApiProxy.Core/ValinorInterApiProxy.Core.csproj" />
+    <Project Path="src/ValinorInterApiProxy.Infrastructure/ValinorInterApiProxy.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ValinorInterApiProxy.Api.Tests/ValinorInterApiProxy.Api.Tests.csproj" />
+    <Project Path="tests/ValinorInterApiProxy.Core.Tests/ValinorInterApiProxy.Core.Tests.csproj" />
+    <Project Path="tests/ValinorInterApiProxy.Infrastructure.Tests/ValinorInterApiProxy.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
