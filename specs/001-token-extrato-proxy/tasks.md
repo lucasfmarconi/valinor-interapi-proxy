@@ -193,20 +193,20 @@ valid Banco Inter access token and expiry are returned.
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Implement `InterHttpClient.IssueTokenAsync` in
+- [X] T025 [US2] Implement `InterHttpClient.IssueTokenAsync` in
       `src/ValinorInterApiProxy.Infrastructure/InterApi/InterHttpClient.cs`: POST
       form-urlencoded `client_id`/`client_secret`/`scope`/`grant_type=client_credentials` over
       MTLS to Inter's token endpoint, map the response to `InterAccessToken` (`ExpiresAt` =
       issuance time + `expires_in`), and map Inter's 400/403/404/503 to the upstream-error
       contract (depends on T005, T007).
-- [ ] T026 [US2] Implement `IssueTokenUseCase` in
+- [X] T026 [US2] Implement `IssueTokenUseCase` in
       `src/ValinorInterApiProxy.Core/UseCases/IssueTokenUseCase.cs`: call `IInterTokenClient`
       and return the resulting `InterAccessToken` (depends on T004, T005, T025).
-- [ ] T027 [US2] Implement `POST /token` in
+- [X] T027 [US2] Implement `POST /token` in
       `src/ValinorInterApiProxy.Api/Endpoints/TokenEndpoint.cs`: require the `token-issue`
       policy, call `IssueTokenUseCase`, map `InterAccessToken` to the `TokenResponse` DTO, and
       map upstream errors via the shared `ErrorResponse` helper (depends on T009, T011, T026).
-- [ ] T028 [US2] Emit correlation-id, caller-identity, and outcome logging for every `/token`
+- [X] T028 [US2] Emit correlation-id, caller-identity, and outcome logging for every `/token`
       request via the middleware from T010 (FR-010; depends on T010, T027).
 
 **Checkpoint**: Both `/extrato` and `/token` are independently functional and testable.

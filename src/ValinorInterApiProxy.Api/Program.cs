@@ -31,6 +31,9 @@ builder.Services.AddTransient(sp => new GetStatementUseCase(
     sp.GetRequiredService<IInterStatementClient>(),
     extratoMaxPeriodDays));
 
+// Token capability (US2): always issues a fresh Inter token (FR-004), no caching.
+builder.Services.AddTransient<IssueTokenUseCase>();
+
 // JWT bearer authentication (constitution Principle II; FR-001): validates signature, issuer,
 // audience, and expiry using the configured identity provider's metadata.
 builder.Services
@@ -88,6 +91,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapExtratoEndpoint();
+app.MapTokenEndpoint();
 
 app.Run();
 

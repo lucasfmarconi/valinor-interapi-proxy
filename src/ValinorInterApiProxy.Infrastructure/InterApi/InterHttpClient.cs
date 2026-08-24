@@ -25,8 +25,34 @@ public sealed class InterHttpClient(HttpClient httpClient, IOptions<InterOptions
     private readonly HttpClient _httpClient = httpClient;
     private readonly InterOptions _options = options.Value;
 
-    public Task<InterAccessToken> IssueTokenAsync(CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException("Implemented by T025 (US2: Obtain Banco Inter Access Token).");
+    public async Task<InterAccessToken> IssueTokenAsync(CancellationToken cancellationToken = default)
+    {
+        var issuedAt = DateTimeOffset.UtcNow;
+
+        using var content = new FormUrlEncodedContent(
+        [
+            new KeyValuePair<string, string>("client_id", _options.ClientId),
+            new KeyValuePair<string, string>("client_secret", _options.ClientSecret),
+            new KeyValuePair<string, string>("scope", _options.Scope),
+            new KeyValuePair<string, string>("grant_type", "client_credentials"),
+        ]);
+
+        using var response = await _httpClient.PostAsync("/oauth/v2/token", content, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InterApiException((int)response.StatusCode, "Banco Inter's token service returned an error.");
+        }
+
+        var payload = await response.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken)
+            ?? throw new InterApiException((int)response.StatusCode, "Banco Inter returned an empty token response.");
+
+        return new InterAccessToken(
+            payload.AccessToken,
+            payload.TokenType,
+            issuedAt.AddSeconds(payload.ExpiresIn),
+            payload.Scope);
+    }
 
     public async Task<BankStatement> GetStatementAsync(
         StatementQuery query,
@@ -78,6 +104,22 @@ public sealed class InterHttpClient(HttpClient httpClient, IOptions<InterOptions
             amount,
             transacao.Titulo,
             transacao.Descricao);
+    }
+
+    /// <summary>Banco Inter's raw <c>POST /oauth/v2/token</c> response shape.</summary>
+    private sealed class TokenResponse
+    {
+        [JsonPropertyName("access_token")]
+        public string AccessToken { get; init; } = string.Empty;
+
+        [JsonPropertyName("token_type")]
+        public string TokenType { get; init; } = string.Empty;
+
+        [JsonPropertyName("expires_in")]
+        public int ExpiresIn { get; init; }
+
+        [JsonPropertyName("scope")]
+        public string Scope { get; init; } = string.Empty;
     }
 
     /// <summary>Banco Inter's raw <c>GET /banking/v2/extrato</c> response shape.</summary>
