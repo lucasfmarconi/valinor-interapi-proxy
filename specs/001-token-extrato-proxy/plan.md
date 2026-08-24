@@ -70,6 +70,21 @@ Assumptions). Multi-tenant/multi-account support is explicitly out of scope for 
 
 No violations identified. Complexity Tracking table below is not needed.
 
+### Re-walk against implementation (T033, 2026-08-24)
+
+All six gates re-verified against the code that actually shipped, not just the plan:
+
+| Principle | Verified against implementation |
+|---|---|
+| I. MTLS Isolation Boundary | `grep` for `X509`/`Certificate` across `src/` matches only `InterHttpClient.cs`/`InterOptions.cs`. |
+| II. JWT-Gated, Least-Privilege Endpoints | `ExtratoEndpoint`/`TokenEndpoint` each call `.RequireAuthorization(ScopePolicies.ExtratoRead / .TokenIssue)` — distinct policies, confirmed live via T029's smoke test (unauthenticated requests to both return real `401`). |
+| III. Explicit Endpoint Allowlist | Only `MapExtratoEndpoint()`/`MapTokenEndpoint()` in `Program.cs`; the only other `Map*` call is `MapOpenApi()`, gated to `Development` only, a schema-doc endpoint, not a passthrough. |
+| IV. Secret & Credential Hygiene | `InterOptions` bound via `Configure<InterOptions>`; `grep` for hardcoded secret-shaped literals in `src/` found none; `appsettings.json` carries only the non-secret `Extrato:MaxPeriodDays`. |
+| V. Observability & Traceability | `CorrelationLoggingMiddleware` is the *only* logging call site in `src/`; live smoke-test log output shows exactly `{Method} {Path} by {Subject} completed with {StatusCode}` — no token/credential/statement content. |
+| Development Workflow gate | Both endpoints have T014/T023 (authorization-rejection) and T015/T024 (WireMock-mocked Inter integration) tests, all green. |
+
+All PASS. See `checklists/clean-architecture.md` for the corresponding dependency-rule re-walk.
+
 ## Project Structure
 
 ### Documentation (this feature)
