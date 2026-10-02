@@ -1,17 +1,14 @@
 <!--
 Sync Impact Report
-Version change: [TEMPLATE] → 1.0.0 (initial ratification)
-Modified principles: n/a (first fill of template placeholders)
-Added sections:
-  - I. MTLS Isolation Boundary
-  - II. JWT-Gated, Least-Privilege Endpoints (NON-NEGOTIABLE)
-  - III. Explicit Endpoint Allowlist (No Generic Passthrough)
-  - IV. Secret & Credential Hygiene
-  - V. Observability & Traceability
-  - Technology & Security Constraints
-  - Development Workflow & Quality Gates
-  - Governance
-Removed sections: none (template placeholders only)
+Version change: 1.0.0 → 1.1.0
+Modified principles:
+  - II. JWT-Gated, Least-Privilege Endpoints (NON-NEGOTIABLE) — clarified that "an approved
+    identity provider" includes the proxy acting as its own issuer via a dedicated, non-proxied
+    client-credentials token-issuance endpoint
+  - III. Explicit Endpoint Allowlist (No Generic Passthrough) — clarified that the token-issuance
+    endpoint is the one explicitly named non-proxied exception to the two-endpoint allowlist
+Added sections: none
+Removed sections: none
 Templates requiring updates:
   - .specify/templates/plan-template.md ✅ compatible (generic "Gates determined based on
     constitution file" placeholder already defers to this document; no edit required)
@@ -52,6 +49,13 @@ Rationale: least privilege was called out as a hard project requirement; scoping
 per endpoint prevents a token minted for one purpose (e.g., reading a statement) from being reused
 to perform an unrelated, potentially more sensitive operation (e.g., issuing tokens).
 
+"An approved identity provider" includes the proxy itself: it MAY issue JWTs to its own
+registered consumers through a dedicated, non-proxied client-credentials token-issuance endpoint
+that validates registered consumer credentials and signs tokens with a key the proxy exclusively
+controls. Tokens issued this way MUST carry the same claim/scope model enforced by this
+principle's existing per-endpoint policies — self-issuance changes who mints the token, not the
+least-privilege guarantee the token must satisfy.
+
 ### III. Explicit Endpoint Allowlist (No Generic Passthrough)
 
 The proxy exposes only endpoints that have been explicitly modeled, specified, and reviewed.
@@ -62,6 +66,11 @@ before implementation begins.
 
 Rationale: an explicit allowlist keeps the attack surface bounded and keeps Principle II
 enforceable — every exposed endpoint must always be traceable to a specific, reviewed scope.
+
+The self-issuance token-issuance endpoint permitted by Principle II is not a proxied Inter
+capability and is therefore not counted against the two-endpoint allowlist above — but it is the
+one explicitly named exception. No other non-proxied endpoint is implicitly permitted by this
+carve-out.
 
 ### IV. Secret & Credential Hygiene
 
@@ -137,4 +146,4 @@ complexity that appears to violate a principle (e.g., a proxied endpoint without
 authorization policy) must be justified in the plan's Complexity Tracking section or the change
 must be redesigned to comply.
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-21
+**Version**: 1.1.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-10-01

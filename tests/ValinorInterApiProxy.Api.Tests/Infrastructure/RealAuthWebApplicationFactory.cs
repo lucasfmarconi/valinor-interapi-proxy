@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
@@ -9,12 +8,13 @@ using ValinorInterApiProxy.Core.Ports;
 namespace ValinorInterApiProxy.Api.Tests.Infrastructure;
 
 /// <summary>
-/// A <see cref="WebApplicationFactory{TEntryPoint}"/> for <c>Program</c> that swaps real JWT
-/// bearer authentication for <see cref="TestAuthHandler"/> and replaces the Infrastructure-layer
-/// Inter ports with in-memory fakes, so Api-level tests exercise the real endpoint/authorization
-/// pipeline without MTLS, a real identity provider, or a live Banco Inter dependency.
+/// A <see cref="WebApplicationFactory{TEntryPoint}"/> for <c>Program</c> that keeps the real
+/// self-issued JWT bearer pipeline (unlike <see cref="ProxyWebApplicationFactory"/>, which swaps
+/// it for <see cref="TestAuthHandler"/>), only replacing the Infrastructure-layer Inter ports.
+/// Used to prove a token minted by <c>POST /auth/token</c> is genuinely accepted by the real
+/// <c>JwtBearerHandler</c>/<c>ScopeAuthorizationHandler</c>, not just structurally well-formed.
 /// </summary>
-public sealed class ProxyWebApplicationFactory : WebApplicationFactory<Program>
+public sealed class RealAuthWebApplicationFactory : WebApplicationFactory<Program>
 {
     public FakeInterAccessTokenProvider AccessTokenProvider { get; } = new();
 
@@ -24,8 +24,6 @@ public sealed class ProxyWebApplicationFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        // The real JWT bearer scheme is swapped out below, but Jwt:* options still get bound and
-        // ValidateOnStart-checked during host startup regardless of which scheme is active.
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Jwt:SigningKey"] = Convert.ToBase64String("test-signing-key-at-least-32-bytes-long"u8.ToArray()),
@@ -39,10 +37,6 @@ public sealed class ProxyWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            services
-                .AddAuthentication(TestAuthHandler.SchemeName)
-                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
-
             services.RemoveAll<IInterAccessTokenProvider>();
             services.AddSingleton<IInterAccessTokenProvider>(AccessTokenProvider);
 

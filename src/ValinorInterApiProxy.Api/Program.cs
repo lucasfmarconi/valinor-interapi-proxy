@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ValinorInterApiProxy.Api.Authorization;
 using ValinorInterApiProxy.Api.Contracts;
@@ -6,6 +7,7 @@ using ValinorInterApiProxy.Api.Endpoints;
 using ValinorInterApiProxy.Api.Middleware;
 using ValinorInterApiProxy.Core.Ports;
 using ValinorInterApiProxy.Core.UseCases;
+using ValinorInterApiProxy.Infrastructure.Auth;
 using ValinorInterApiProxy.Infrastructure.Caching;
 using ValinorInterApiProxy.Infrastructure.InterApi;
 
@@ -34,22 +36,48 @@ builder.Services.AddTransient(sp => new GetStatementUseCase(
 // Token capability (US2): always issues a fresh Inter token (FR-004), no caching.
 builder.Services.AddTransient<IssueTokenUseCase>();
 
+// Self-issued JWT (constitution Principle II, amended 1.1.0): the proxy is its own identity
+// provider for registered consumers — no external OIDC Authority dependency.
+builder.Services.AddOptions<JwtIssuerOptions>()
+    .Bind(builder.Configuration.GetSection(JwtIssuerOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer), "Jwt:Issuer is required.")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Audience), "Jwt:Audience is required.")
+    .Validate(
+        o => TryDecodeSigningKey(o.SigningKey, out var bytes) && bytes.Length >= 32,
+        "Jwt:SigningKey must be base64-encoded and decode to at least 32 bytes (256 bits).")
+    .ValidateOnStart();
+builder.Services.AddOptions<AuthConsumersOptions>()
+    .Bind(builder.Configuration.GetSection(JwtIssuerOptions.SectionName))
+    .Validate(o => o.Consumers.Count > 0, "At least one Jwt:Consumers entry must be configured.")
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<IClientCredentialStore, AuthConsumerCredentialStore>();
+builder.Services.AddSingleton<IJwtIssuer, SymmetricJwtIssuer>();
+builder.Services.AddTransient<IssueAuthTokenUseCase>();
+
 // JWT bearer authentication (constitution Principle II; FR-001): validates signature, issuer,
-// audience, and expiry using the configured identity provider's metadata.
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+// audience, and expiry against the self-issued token's own signing key.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtIssuerOptions>>((bearerOptions, jwtOptions) =>
     {
-        options.Authority = builder.Configuration["Jwt:Authority"];
-        options.Audience = builder.Configuration["Jwt:Audience"];
-        options.TokenValidationParameters = new TokenValidationParameters
+        var settings = jwtOptions.Value;
+
+        // Preserve "sub"/"scope" claim names exactly as issued — JwtSecurityTokenHandler's
+        // default inbound claim mapping would otherwise silently remap "sub" to a long legacy
+        // URI, breaking ScopeAuthorizationHandler and CorrelationLoggingMiddleware.
+        bearerOptions.MapInboundClaims = false;
+        bearerOptions.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
+            ValidIssuer = settings.Issuer,
             ValidateAudience = true,
+            ValidAudience = settings.Audience,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(settings.SigningKey)),
         };
-        options.Events = new JwtBearerEvents
+        bearerOptions.Events = new JwtBearerEvents
         {
             OnChallenge = context =>
             {
@@ -92,7 +120,27 @@ app.UseAuthorization();
 
 app.MapExtratoEndpoint();
 app.MapTokenEndpoint();
+app.MapAuthTokenEndpoint();
 
 app.Run();
+
+static bool TryDecodeSigningKey(string? signingKey, out byte[] bytes)
+{
+    bytes = [];
+    if (string.IsNullOrWhiteSpace(signingKey))
+    {
+        return false;
+    }
+
+    try
+    {
+        bytes = Convert.FromBase64String(signingKey);
+        return true;
+    }
+    catch (FormatException)
+    {
+        return false;
+    }
+}
 
 public partial class Program;

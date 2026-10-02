@@ -3,10 +3,11 @@
 ## Prerequisites
 
 - .NET 10 SDK
-- A JWT for a consumer identity, carrying either (or both) the `token-issue` and `extrato-read`
-  scopes, issued by the identity provider configured for this environment
 - Banco Inter application credentials (client id/secret) and MTLS client certificate, available
   to the proxy via User Secrets (local dev) — never committed to source control
+
+A consumer JWT is minted by the proxy itself (see "Verify: mint a consumer JWT" below) — no
+external identity provider is required.
 
 ## Local configuration (development)
 
@@ -18,8 +19,13 @@ dotnet user-secrets set "Inter:CertificatePath" "<path-to-mtls-cert.pfx>"
 dotnet user-secrets set "Inter:CertificatePassword" "<cert-password>"
 dotnet user-secrets set "Inter:Scope" "extrato.read"
 dotnet user-secrets set "Inter:ContaCorrente" "<conta-corrente-number>"
-dotnet user-secrets set "Jwt:Authority" "<identity-provider-issuer-url>"
-dotnet user-secrets set "Jwt:Audience" "<expected-audience>"
+dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 32)"
+dotnet user-secrets set "Jwt:Issuer" "valinor-interapi-proxy"
+dotnet user-secrets set "Jwt:Audience" "valinor-interapi-proxy-consumers"
+dotnet user-secrets set "Jwt:Consumers:0:ClientId" "<consumer-client-id>"
+dotnet user-secrets set "Jwt:Consumers:0:ClientSecret" "<consumer-client-secret>"
+dotnet user-secrets set "Jwt:Consumers:0:AllowedScopes:0" "token-issue"
+dotnet user-secrets set "Jwt:Consumers:0:AllowedScopes:1" "extrato-read"
 ```
 
 ## Run
@@ -27,6 +33,18 @@ dotnet user-secrets set "Jwt:Audience" "<expected-audience>"
 ```bash
 dotnet run --project src/ValinorInterApiProxy.Api
 ```
+
+## Verify: mint a consumer JWT
+
+```bash
+curl -X POST https://localhost:5001/auth/token \
+  --data-urlencode "client_id=<consumer-client-id>" \
+  --data-urlencode "client_secret=<consumer-client-secret>" \
+  --data-urlencode "scope=token-issue extrato-read"
+```
+
+Expected: `200 OK` with `access_token`, `token_type`, `expires_in`. Use the returned
+`access_token` as `<jwt-with-...-scope>` in the examples below.
 
 ## Verify: issue a token
 
