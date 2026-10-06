@@ -1,0 +1,13 @@
+**/bin
+**/obj
+**/*.pfx
+**/secrets.sh
+**/.env
+.git
+.github
+.idea
+.claude
+.specify
+specs
+tests
+docs

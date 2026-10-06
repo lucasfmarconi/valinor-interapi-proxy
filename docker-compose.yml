@@ -1,0 +1,21 @@
+services:
+  api:
+    image: ghcr.io/lucasfmarconi/valinor-interapi-proxy:${IMAGE_TAG:-latest}
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Inter__CertificatePath: /run/secrets/inter.pfx
+    volumes:
+      - ${INTER_PFX_PATH:-./secrets/Inter_API.pfx}:/run/secrets/inter.pfx:ro
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"   # host processes only; never 0.0.0.0
+    networks:
+      interproxy:
+        aliases:
+          - inter-proxy
+
+networks:
+  interproxy:
+    name: interproxy

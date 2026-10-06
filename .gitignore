@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# local secrets mounted into the container (see docker-compose.yml)
+secrets/
+
 # User-specific files
 *.rsuser
 *.suo
